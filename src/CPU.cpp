@@ -1,61 +1,84 @@
 #include "../include/CPU.hpp"
-
+/**
+ * @brief Construct a new CPU::CPU object
+ *  Resets the CPU and initiliazes the memory.
+ */
 CPU::CPU(){
     reset();
-}
-
-void CPU::reset(){
-    uint8_t lo = memory[0xFFFC];
-    uint8_t hi = memory[0xFFFD];
-    this->PC = ( hi << 4) | lo;  // Adjust the starting address as needed
-    this->S = 0xFF;
-    A = X = Y = P = 0;
     initMemory();
 }
+/**
+ * @brief 6502 reset function, to reset the cpu to default values
+ * it'll cost 7 clock cycles.
+ * 
+ */
+void CPU::reset() {
+    uint8_t lo = memory[0xFFFC];
+    uint8_t hi = memory[0xFFFD];
+    std::cout << "Low: " << static_cast<int>(lo) << " High: " << static_cast<int>(hi) << std::endl;
+    this->PC = (hi << 8) + lo;  // Adjust the starting address as needed
+    std::cout<<"PC = "<<this->PC<<std::endl;
+    this->S = 0xFF; // stack grows upwards
+    A = X = Y = P = 0;
+    clocks = 7; // reset costs 7 clock cycles
+    total_clocks = 0;
+}
+/**
+ * @brief Fetches value in memory where the PC is located.
+ * 
+ * @return uint8_t data where PC is located at in memory
+ */
+uint8_t CPU::fetch(){
+    return memory[PC++];
+}
+/**
+ * @brief Prints out the status of the registers 
+ * for troubleshooting reasons.
+ * 
+ */
+void CPU::printstatus(){
+    std::cout<<"CPU Status"<<std::endl;
+    std::cout<<"Clock_cycles: Accumulated: "<<total_clocks<<" On instruction "<<static_cast<int>(clocks)<<std::endl;
+    std::cout<<"Register values:   A: "<<static_cast<int>(A)<<std::endl;
+    std::cout<<"Program counter: "<<PC<<std::endl;
+ }
+/**
+ * @brief executes our instructions, and figures out situation with clock cycle
+ * If there's no remaining clockcycles, it'll start executing new instruction, 
+ * otherwise, do not execute. 
+ */
 
-void CPU::execute(uint8_t* cycles){
-    while (*cycles > 0) {
-        uint8_t data = getInstruction(cycles);
-        std::cout << "PC: " << static_cast<int>(PC) << std::endl;  // Print PC value
-        switch (data) {
+void CPU::execute(){
+   if(clocks == 0){
+        uint8_t instruction = fetch();
+        switch(instruction){
             case 0xA9:
-                A = getInstruction(cycles);
                 resetFlag();
-                if (A == 0) {
-                    P |= Zero;
-                }
-                if (A & 0b10000000) {
-                    P |= negative;
-                }
+                A = fetch();
+                P = (A == 0) ? P | Zero : P | 0;
+                P = (A & 0x80) ? P | negative : P | 0;
+                clocks = 2;
                 break;
+            default:
+                std::cout<<"No instruction defined"<<std::endl;
+
+                
         }
-    }
+   }
+   clocks--;
+   total_clocks++;
 }
-void CPU::load(std::string fileName){
-    std::ifstream inFile(fileName, std::ios::binary);
-     if (inFile.is_open()) {
-        // Read the content of the file into the memory array
-        inFile.read(reinterpret_cast<char*>(memory), sizeof(memory));
-
-        // Close the file
-        inFile.close();
-
-    } else {
-        std::cerr << "Error opening file " << fileName << std::endl;
-    }
-}
+/**
+ * @brief resets our status flags
+ * 
+ */
 void CPU::resetFlag(){
-    P = 0;
+    P = P ^ P;
 }
-
-uint8_t CPU::getInstruction(uint8_t* cycles){
-    (*cycles)--;
-    uint8_t instruction = memory[PC];
-    PC++;  // Increment the program counter
-    std::cout << "instruction: " << static_cast<int>(instruction) << std::endl;
-    return instruction;
-}
-
+/**
+ * @brief Initializes all values in memory to zero;
+ * 
+ */
 void CPU::initMemory(){
     // Initialize memory to zeros (or any other initial values)
     std::fill(memory, memory + sizeof(memory), 0);
@@ -63,12 +86,17 @@ void CPU::initMemory(){
 
 int main(int argc, char** argv){
     CPU* cpu = new CPU();
-    uint8_t aoeu = 2;
-    cpu->load("../output.bin");
-    for(int i = 0; i < 0xFFFC; i++){
-        cpu->execute(&aoeu);
+    cpu->memory[0xFFFC] = 0;
+    cpu-> memory[0xFFFD] = 0x80;
+    cpu->memory[0x8000] = 0xA9;
+    cpu->memory[0x8001] = 0x45;
+    cpu->reset();
+    char b = 'n';
+    while(b = 'n'){
+        cpu->printstatus();
+        std::cin>>b;
+        cpu->execute();
     }
-    
     delete cpu;
 
     return 0;
