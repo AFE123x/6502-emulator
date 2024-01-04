@@ -3,6 +3,10 @@
 #include<cstdint>
 #include<iostream>
 #include<fstream>
+/**
+ * @brief Header file containing all the declarations for
+ * The CPU class
+ */
 class CPU{
     public:
         CPU(); //CPU constructor to initialize memory
@@ -33,7 +37,10 @@ class CPU{
         void execute();
         void load(std::string fileName);
         void printstatus();
-        
+        typedef struct{
+            
+        }instruction;
+        char flags[8] = "NOBDIZC";
     private:
     void initMemory();
     void resetFlag();

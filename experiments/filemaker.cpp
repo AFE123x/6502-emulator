@@ -2,7 +2,11 @@
 #include <fstream>
 #include <vector>
 #include <cstdint>
-
+/**
+ * @brief A program to generate a .bin file containing 
+ * the machine language for the CPU. 
+ * @return int indicating success or failure. 
+ */
 int main() {
     // Example machine code (replace this with your actual machine code)
     uint8_t machinecode[65536];
